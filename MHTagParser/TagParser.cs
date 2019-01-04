@@ -14,12 +14,9 @@ namespace OCSS.MHTagParser {
    //
    // Notes:
    // ----------------------
-   // This parser doesn't handle any special cases with ">" embedded in any tag.
-   // ex) SGML/HTML Comment: "<!------> hello-->"
-   // It is a legal comment tag with two comments; the first is empty and the second one contains "> hello".
+   // This parser doesn't handle any special cases with TagEndChar embedded within a tag. This could be the case for SGML Declarations like comments.
    //
-   // This class also doesn't validate matching of tags/markers, etc.
-   // If you want a validator, look elsewhere...
+   // This class also doesn't validate matching of tags/markers, etc. If you want a validator, look elsewhere...
    //
    // Sample Usage:
    // --------------
