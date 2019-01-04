@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
+    <RootNamespace>OCSS.MHTagParser</RootNamespace>
+    <PackageId>OCSS.MHTagParser</PackageId>
+    <Authors>MH</Authors>
+    <Company>OC Software Solutions</Company>
+    <Description>Generic SGML/HTML parser (no validation)</Description>
+    <Copyright>© 2019, OC Software Solutions</Copyright>
+    <PackageTags>OCSS HTML Tag Parser</PackageTags>
+     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+     <PackageProjectUrl>https://github.com/mzh99/MHTagParser</PackageProjectUrl>
+     <RepositoryUrl>https://github.com/mzh99/MHTagParser.git</RepositoryUrl>
+     <RepositoryType>git</RepositoryType>
+     <AssemblyVersion>1.0.1.0</AssemblyVersion>
+     <Version>1.0.1</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OCSS.StringUtil.MHString" Version="1.0.1" />
+  </ItemGroup>
+
+</Project>
