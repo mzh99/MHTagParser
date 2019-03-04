@@ -9,6 +9,11 @@ namespace MHTagParser.Tests {
    public class UnitTest1 {
 
       private static readonly string CONTENT1 = @"<html><head>Heading</head><body><p>para 1</p><p>para 2<form><input name='test' id='myid'><input type='checkbox' id='vehicleid' name='vehicle' value='Boat' checked>I have a boat></form></p></body></html>";
+
+      private static readonly string XML_CONTENT1 = @"<?xml version=""1.0"" encoding=""UTF-8""?><svg class=""__svgcsssuper"" viewBox=""0 0 128 104"" preserveAspectRatio=""xMinYMin meet"" version=""1.0"" xmlns=""http://www.w3.org/2000/svg"" xmlns:cc=""http://creativecommons.org/ns#"" xmlns:dc=""http://purl.org/dc/elements/1.1/"" xmlns:rdf=""http://www.w3.org/1999/02/22-rdf-syntax-ns#""></svg>";
+
+      private static readonly string XML_CONTENT2 = @"<html><head>Heading</head><body><!-- a comment here --></body></html>";
+
       /*
          for (int z = 0; z < TP.TagCount; z++) {
             Console.WriteLine("Tag=" + TP.Tag(z) + " AfterText=" + TP.TagPostText(z) + " PreText=" + TP.TagPreText(z));
@@ -58,6 +63,18 @@ namespace MHTagParser.Tests {
          Assert.AreEqual("CHECKBOX", list[0].Value.ToUpper(), "First value not CHECKBOX");
          Assert.AreEqual("CHECKED", list[4].Key.ToUpper(), "Fifth attribute not CHECKED");
          Assert.AreEqual(string.Empty, list[4].Value.ToUpper(), "Fifth value not empty");
+      }
+
+      [TestMethod]
+      public void ParseAttributesWithSpacesInValueIsSuccessful() {
+         TagParser TP = new TagParser(true, true, '<', '>') { Content = XML_CONTENT1 };
+         TP.ParseContent();
+         var svgNdx = TP.FindTag("svg");
+         Assert.AreEqual(1, svgNdx, "svg tag index != 1");
+         var kvps = TP.ParseTagAttributes(svgNdx).ToArray();
+         Assert.AreEqual(8, kvps.Length);
+         Assert.AreEqual("class", kvps[0].Key);
+         Assert.AreEqual("__svgcsssuper", kvps[0].Value);
       }
 
    }

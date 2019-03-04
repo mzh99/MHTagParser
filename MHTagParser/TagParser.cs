@@ -8,9 +8,6 @@ namespace OCSS.MHTagParser {
    //
    // Generic Tag Parser - can be used for SGML, or subsets like HTML.
    // Translated from the original Delphi version.
-   // Created by: Mitch Howard
-   // Created on: 1/11/10 (original version in 2003)
-   // Copyright: (c) Mitch Howard, 2003-2010
    //
    // Notes:
    // ----------------------
@@ -51,6 +48,9 @@ namespace OCSS.MHTagParser {
       static readonly char TAGTOKEN_START = '<';
       static readonly char TAGTOKEN_END = '>';
       static readonly char TAGTOKEN_SPACE = ' ';
+      static readonly char ATTRIB_SEP = '=';
+      static readonly char SINGLE_QUOTE = '\'';
+      static readonly char DOUBLE_QUOTE = '"';
 
       public bool CaseSensitiveTags { get; private set; }
       public bool CaseSensitiveAttributes { get; private set; }
@@ -142,21 +142,96 @@ namespace OCSS.MHTagParser {
       /// <summary>Parses all Tag Attributes for a given tag</summary>
       /// <param name="tagNum">The index of the tag</param>
       /// <returns>IEnumerable of KeyValuePair</returns>
+      //public IEnumerable<KeyValuePair<string, string>> ParseTagAttributes(int tagNum) {
+      //   const char KEYVAL_SEP = '=';
+      //   string oneKey, oneVal;
+
+      //   var txt = GetTagAttributeTextRaw(tagNum);
+      //   var tokens = txt.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+      //   foreach (var token in tokens) {
+      //      oneKey = token.StrSeg(1, 1, KEYVAL_SEP).Trim();
+      //      if (CaseSensitiveAttributes == false)
+      //         oneKey = oneKey.ToUpper();
+      //      oneVal = token.StrSeg(2, int.MaxValue, KEYVAL_SEP).Trim().Unquote(new char[] { '"', '\'', '“', '”' });
+
+      //      yield return new KeyValuePair<string, string>(oneKey, oneVal);
+      //   }
+
+      //}
+
+      /// <summary>Parses all Tag Attributes for a given tag</summary>
+      /// <param name="tagNum">The index of the tag</param>
+      /// <returns>IEnumerable of KeyValuePair</returns>
       public IEnumerable<KeyValuePair<string, string>> ParseTagAttributes(int tagNum) {
-         const char KEYVAL_SEP = '=';
-         string oneKey, oneVal;
+         string oneTag, oneAttr, oneVal;
+         int startPos, savePos;
+         char wsChar;
 
-         var txt = GetTagAttributeTextRaw(tagNum);
-         var tokens = txt.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-         foreach (var token in tokens) {
-            oneKey = token.StrSeg(1, 1, KEYVAL_SEP).Trim();
+         oneTag = GetTagAttributeTextRaw(tagNum);
+         while (oneTag.Length > 0) {
+            startPos = 0;
+            oneAttr = "";
+            oneVal = "";
+            // Find the first TAGTOKEN_SPACE or ATTRIB_SEP
+            while (startPos + 1 <= oneTag.Length) {
+               if ((oneTag[startPos] == TAGTOKEN_SPACE) || (oneTag[startPos] == ATTRIB_SEP))
+                  break;
+               startPos++;
+            }
             if (CaseSensitiveAttributes == false)
-               oneKey = oneKey.ToUpper();
-            oneVal = token.StrSeg(2, int.MaxValue, KEYVAL_SEP).Trim().Unquote(new char[] { '"', '\'', '“', '”' });
-
-            yield return new KeyValuePair<string, string>(oneKey, oneVal);
+               oneAttr = oneTag.Substring(0, startPos).ToUpper();
+            else
+               oneAttr = oneTag.Substring(0, startPos);
+            // Find the next non-space char
+            while (startPos + 1 <= oneTag.Length) {
+               if (oneTag[startPos] != TAGTOKEN_SPACE)
+                  break;
+               startPos++;
+            }
+            if (startPos + 1 <= oneTag.Length) {
+               if (oneTag[startPos] == ATTRIB_SEP) {
+                  startPos++;
+                  // Find the next non-space char (if any) after the ATTRIB_SEP
+                  while (startPos + 1 <= oneTag.Length) {
+                     if (oneTag[startPos] != TAGTOKEN_SPACE)
+                        break;
+                     startPos++;
+                  }
+                  if (startPos + 1 <= oneTag.Length) {
+                     savePos = startPos;  // Save position
+                     wsChar = TAGTOKEN_SPACE;
+                     if ((oneTag[startPos] == DOUBLE_QUOTE) || (oneTag[startPos] == SINGLE_QUOTE)) {
+                        wsChar = oneTag[startPos];
+                        startPos++;
+                     }
+                     while (startPos + 1 <= oneTag.Length) {
+                        if (oneTag[startPos] == wsChar) {
+                           if (wsChar != TAGTOKEN_SPACE)
+                              startPos++;
+                           break;
+                        }
+                        startPos++;
+                     }
+                     oneVal = oneTag.Substring(savePos, startPos - savePos);
+                     // Set marker to next non space char
+                     while (startPos + 1 <= oneTag.Length) {
+                        if (oneTag[startPos] != TAGTOKEN_SPACE)
+                           break;
+                        startPos++;
+                     }
+                  }
+               }
+            }
+            oneTag = oneTag.Substring(startPos).TrimStart();
+            if (oneAttr.Length > 0) {
+               // Check if value has single/double quotes to enclose value
+               if (oneVal.Length > 1) {
+                  if (((oneVal[0] == DOUBLE_QUOTE) || (oneVal[0] == SINGLE_QUOTE)) && (oneVal[0] == oneVal[oneVal.Length - 1]))
+                     oneVal = oneVal.Substring(1, oneVal.Length - 2);
+               }
+               yield return new KeyValuePair<string, string>(oneAttr, oneVal);
+            }
          }
-
       }
 
       /// <summary>returns the tag attributes raw string for a tag</summary>
@@ -283,7 +358,7 @@ namespace OCSS.MHTagParser {
                      break;
                   if ((Content[cPos] == '"') && (outOfSQuote))
                      outOfDQuote = !outOfDQuote;
-                  if ((Content[cPos] == '\'') && (outOfDQuote))
+                  if ((Content[cPos] == SINGLE_QUOTE) && (outOfDQuote))
                      outOfSQuote = !outOfSQuote;
                   cPos++;
                }
