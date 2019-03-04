@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
-using OCSS.StringUtil;
-// Note: Can be decoupled from OCSS.StringUtil.MHString if two functions are replaced: StrSeg() and Unquote()
 
 namespace OCSS.MHTagParser {
    //
@@ -11,8 +8,7 @@ namespace OCSS.MHTagParser {
    //
    // Notes:
    // ----------------------
-   // This parser doesn't handle any special cases with TagEndChar embedded within a tag. This could be the case for SGML Declarations like comments.
-   //
+   // This parser doesn't handle special cases with TagEndChar embedded within a tag. This could be the case for SGML Declarations like comments.
    // This class also doesn't validate matching of tags/markers, etc. If you want a validator, look elsewhere...
    //
    // Sample Usage:
@@ -42,7 +38,7 @@ namespace OCSS.MHTagParser {
          EndByte = EndPos;
       }
    }
-
+   /// <summary>Generic Tag Parser</summary>
    public class TagParser {
 
       static readonly char TAGTOKEN_START = '<';
