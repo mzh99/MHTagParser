@@ -14,12 +14,9 @@
      <PackageProjectUrl>https://github.com/mzh99/MHTagParser</PackageProjectUrl>
      <RepositoryUrl>https://github.com/mzh99/MHTagParser.git</RepositoryUrl>
      <RepositoryType>git</RepositoryType>
-     <AssemblyVersion>1.0.1.0</AssemblyVersion>
-     <Version>1.0.1</Version>
+     <AssemblyVersion>1.0.2.0</AssemblyVersion>
+     <Version>1.0.2</Version>
+     <FileVersion>1.0.2.0</FileVersion>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="OCSS.StringUtil.MHString" Version="1.0.1" />
-  </ItemGroup>
 
 </Project>

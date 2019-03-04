@@ -72,9 +72,11 @@ namespace MHTagParser.Tests {
          var svgNdx = TP.FindTag("svg");
          Assert.AreEqual(1, svgNdx, "svg tag index != 1");
          var kvps = TP.ParseTagAttributes(svgNdx).ToArray();
-         Assert.AreEqual(8, kvps.Length);
-         Assert.AreEqual("class", kvps[0].Key);
-         Assert.AreEqual("__svgcsssuper", kvps[0].Value);
+         Assert.AreEqual(8, kvps.Length, "array not 8 elements");
+         Assert.AreEqual("class", kvps[0].Key, "class not first attribute");
+         Assert.AreEqual("__svgcsssuper", kvps[0].Value, "class value incorrect");
+         Assert.AreEqual("viewBox", kvps[1].Key, "viewBox not second attribute");
+         Assert.AreEqual("0 0 128 104", kvps[1].Value, "viewBox value incorrect");
       }
 
    }
