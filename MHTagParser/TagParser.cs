@@ -31,11 +31,15 @@ namespace OCSS.MHTagParser {
       public readonly string TagName;
       public readonly int StartByte;
       public readonly int EndByte;
+      public readonly int EleStart;
+      public readonly int EleEnd;
 
-      public TagRec(string Name, int StartPos, int EndPos) {
-         TagName = Name;
-         StartByte = StartPos;
-         EndByte = EndPos;
+      public TagRec(string name, int startPos, int endPos, int eleStart, int eleEnd) {
+         this.TagName = name;
+         this.StartByte = startPos;
+         this.EndByte = endPos;
+         this.EleStart = eleStart;
+         this.EleEnd = eleEnd;
       }
    }
    /// <summary>Generic Tag Parser</summary>
@@ -43,7 +47,7 @@ namespace OCSS.MHTagParser {
 
       static readonly char TAGTOKEN_START = '<';
       static readonly char TAGTOKEN_END = '>';
-      static readonly char TAGTOKEN_SPACE = ' ';
+      // static readonly char TAGTOKEN_SPACE = ' ';
       static readonly char ATTRIB_SEP = '=';
       static readonly char SINGLE_QUOTE = '\'';
       static readonly char DOUBLE_QUOTE = '"';
@@ -73,7 +77,14 @@ namespace OCSS.MHTagParser {
       public string Tag(int tagNum) {
          if ((tagNum < 0) || (tagNum >= TagRecs.Count))
             return string.Empty;
-         return ((TagRec) TagRecs[tagNum]).TagName;
+         return TagRecs[tagNum].TagName;
+      }
+
+      public TagRec GetTagInfo(int tagNum) {
+         if (tagNum < 0 || tagNum >= TagRecs.Count)
+            return null;
+         return TagRecs[tagNum];
+
       }
 
       /// <summary>Returns the index of the Tag named TagName starting the search with index StartSearch</summary>
@@ -161,16 +172,16 @@ namespace OCSS.MHTagParser {
       public IEnumerable<KeyValuePair<string, string>> ParseTagAttributes(int tagNum) {
          string oneTag, oneAttr, oneVal;
          int startPos, savePos;
-         char wsChar;
+         char endChar;
 
          oneTag = GetTagAttributeTextRaw(tagNum);
          while (oneTag.Length > 0) {
             startPos = 0;
             oneAttr = "";
             oneVal = "";
-            // Find the first TAGTOKEN_SPACE or ATTRIB_SEP
+            // Find the first WHITESPACE or ATTRIB_SEP
             while (startPos + 1 <= oneTag.Length) {
-               if ((oneTag[startPos] == TAGTOKEN_SPACE) || (oneTag[startPos] == ATTRIB_SEP))
+               if (IsWhitespace(oneTag, startPos) || oneTag[startPos] == ATTRIB_SEP)
                   break;
                startPos++;
             }
@@ -178,40 +189,46 @@ namespace OCSS.MHTagParser {
                oneAttr = oneTag.Substring(0, startPos).ToUpper();
             else
                oneAttr = oneTag.Substring(0, startPos);
-            // Find the next non-space char
+            // Find the next non-whitespace char
             while (startPos + 1 <= oneTag.Length) {
-               if (oneTag[startPos] != TAGTOKEN_SPACE)
+               if (IsWhitespace(oneTag, startPos) == false)
                   break;
                startPos++;
             }
             if (startPos + 1 <= oneTag.Length) {
                if (oneTag[startPos] == ATTRIB_SEP) {
                   startPos++;
-                  // Find the next non-space char (if any) after the ATTRIB_SEP
+                  // Find the next non-whitespace (if any) after the ATTRIB_SEP
                   while (startPos + 1 <= oneTag.Length) {
-                     if (oneTag[startPos] != TAGTOKEN_SPACE)
+                     if (IsWhitespace(oneTag, startPos) == false)
                         break;
                      startPos++;
                   }
                   if (startPos + 1 <= oneTag.Length) {
                      savePos = startPos;  // Save position
-                     wsChar = TAGTOKEN_SPACE;
-                     if ((oneTag[startPos] == DOUBLE_QUOTE) || (oneTag[startPos] == SINGLE_QUOTE)) {
-                        wsChar = oneTag[startPos];
+                     endChar = 'x';  // doesn't matter what this is set to
+                     bool isQuoted = (oneTag[startPos] == DOUBLE_QUOTE) || (oneTag[startPos] == SINGLE_QUOTE);
+                     if (isQuoted) {
+                        endChar = oneTag[startPos];   // save the quote whether single or double
                         startPos++;
                      }
                      while (startPos + 1 <= oneTag.Length) {
-                        if (oneTag[startPos] == wsChar) {
-                           if (wsChar != TAGTOKEN_SPACE)
-                              startPos++;
+                        if (oneTag[startPos] == endChar && isQuoted) {      // ending quote was found
+                           startPos++;
                            break;
+                        }
+                        else {
+                           if (IsWhitespace(oneTag, startPos) && isQuoted == false) {     // non-quoted attribute value end found
+                              startPos++;
+                              break;
+                           }
                         }
                         startPos++;
                      }
                      oneVal = oneTag.Substring(savePos, startPos - savePos);
                      // Set marker to next non space char
                      while (startPos + 1 <= oneTag.Length) {
-                        if (oneTag[startPos] != TAGTOKEN_SPACE)
+                        if (IsWhitespace(oneTag, startPos) == false)
                            break;
                         startPos++;
                      }
@@ -228,6 +245,14 @@ namespace OCSS.MHTagParser {
                yield return new KeyValuePair<string, string>(oneAttr, oneVal);
             }
          }
+      }
+
+      private bool IsWhitespace(char c) {
+         return char.IsWhiteSpace(c);
+      }
+
+      private bool IsWhitespace(string str, int ndx) {
+         return char.IsWhiteSpace(str, ndx);
       }
 
       /// <summary>returns the tag attributes raw string for a tag</summary>
@@ -305,6 +330,8 @@ namespace OCSS.MHTagParser {
       /// <summary>Parse text content</summary>
       public void ParseContent() {
          int cPos, saveCPos;
+         int eleStart = 0;
+         int eleEnd = 0;
          bool outOfDQuote, outOfSQuote;
          string tempUC;
          StringBuilder OneTag = new StringBuilder();
@@ -318,25 +345,26 @@ namespace OCSS.MHTagParser {
             while ((cPos + 1 <= Content.Length) && (Content[cPos] != TagStartChar)) {
                cPos++;
             }
+            eleStart = cPos;  // save raw tag start position
             cPos++;
             if (cPos + 1 >= Content.Length)
                break;
-            // Skip any spaces before tag
-            while ((cPos + 1 <= Content.Length) && (Content[cPos] == TAGTOKEN_SPACE)) {
+            // Skip any whitespace before tag
+            while ((cPos + 1 <= Content.Length) && IsWhitespace(Content, cPos)) {
                cPos++;
             }
             if (cPos + 1 >= Content.Length)
                break;
-            if (Content[cPos] == TAGTOKEN_SPACE)
+            if (IsWhitespace(Content, cPos))
                cPos++;
             // Get the tag name
             OneTag.Clear();
-            while ((cPos + 1 <= Content.Length) && (Content[cPos] != TAGTOKEN_SPACE) && (Content[cPos] != TagEndChar)) {
+            while ((cPos + 1 <= Content.Length) && (IsWhitespace(Content, cPos) == false) && (Content[cPos] != TagEndChar)) {
                OneTag.Append(Content[cPos]);
                cPos++;
             }
             // Skip any spaces after tag
-            while ((cPos + 1 <= Content.Length) && (Content[cPos] == TAGTOKEN_SPACE)) {
+            while ((cPos + 1 <= Content.Length) && IsWhitespace(Content, cPos)) {
                cPos++;
             }
             if (CaseSensitiveTags == false) {
@@ -358,7 +386,8 @@ namespace OCSS.MHTagParser {
                      outOfSQuote = !outOfSQuote;
                   cPos++;
                }
-               TagRecs.Add(new TagRec(OneTag.ToString(), saveCPos, cPos));
+               eleEnd = cPos;    // save raw tag ending position
+               TagRecs.Add(new TagRec(OneTag.ToString(), saveCPos, cPos, eleStart, eleEnd));
             }
          }
       }
